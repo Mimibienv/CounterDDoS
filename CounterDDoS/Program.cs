@@ -5,9 +5,6 @@ using System.Threading.Tasks;
 using VortexLibraries;
 using System.Diagnostics;
 
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-
 namespace CounterDDoS
 {
     sealed internal class Program
